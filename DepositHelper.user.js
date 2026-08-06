@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.5.1
+// @version      1.6
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -757,32 +757,65 @@ Requisites: ${req}`;
     };
 
     document.getElementById("btn_with_ref").onclick = async function () {
+        const btn = document.getElementById("btn_with_ref");
+        const prevLabel = btn.textContent;
+        btn.disabled = true;
+
         // Сначала обычное заполнение (method/id/ref)
         autoExtract();
 
-        // Протыкиваем CALLBACK / OPERATOR_RESPONSE / OPERATOR_REQUEST → Raw JSON
+        // Повторы, если логи ещё не прогрузились
+        const maxAttempts = 5;
+        const delayMs = 800;
+        let data = null;
+
         try {
-            const data = await probeLogsForRequisites();
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                btn.textContent = "WAIT " + attempt + "/" + maxAttempts + "...";
+                console.log("[Deposit Helper] WITH REFERENCE attempt", attempt);
 
-            if (data.bank) document.getElementById("dh_bank").value = data.bank;
-            if (data.holder) document.getElementById("dh_holder").value = data.holder;
+                try {
+                    data = await probeLogsForRequisites();
+                } catch (e) {
+                    console.warn("Deposit Helper probeLogs error", e);
+                    data = null;
+                }
 
-            // Приоритет: identifier, потом cardNumber/другие реквизиты
-            if (data.identifier) {
-                document.getElementById("dh_req").value = data.identifier;
-            } else if (data.req) {
-                document.getElementById("dh_req").value = data.req;
+                const hasLogs = data && data.opened && data.opened.length > 0;
+                const hasData = data && (data.identifier || data.req || data.bank || data.holder);
+
+                if (hasData) {
+                    if (data.bank) document.getElementById("dh_bank").value = data.bank;
+                    if (data.holder) document.getElementById("dh_holder").value = data.holder;
+                    if (data.identifier) {
+                        document.getElementById("dh_req").value = data.identifier;
+                    } else if (data.req) {
+                        document.getElementById("dh_req").value = data.req;
+                    }
+                    console.log("[Deposit Helper] requisites found on attempt", attempt, data.opened);
+                    break;
+                }
+
+                // Если логи не найдены или данных нет — ждём и пробуем снова
+                if (attempt < maxAttempts) {
+                    console.log("[Deposit Helper] logs not ready, retrying...", { hasLogs, hasData });
+                    await sleep(delayMs);
+                }
             }
-        } catch (e) {
-            console.warn("Deposit Helper probeLogs error", e);
-            // fallback: старое поведение
-            const identifier = extractValue([
-                "identifier", "Identifier", "IDENTIFIER",
-                "identificator", "id_identifier"
-            ]);
-            if (identifier) {
-                document.getElementById("dh_req").value = identifier;
+
+            // Финальный fallback по всей странице
+            if (!document.getElementById("dh_req").value) {
+                const identifier = extractValue([
+                    "identifier", "Identifier", "IDENTIFIER",
+                    "identificator", "id_identifier"
+                ]);
+                if (identifier) {
+                    document.getElementById("dh_req").value = identifier;
+                }
             }
+        } finally {
+            btn.textContent = prevLabel;
+            btn.disabled = false;
         }
     };
 
@@ -822,4 +855,3 @@ Requisites: ${req}`;
     setTimeout(startHelper, 2000);
     setTimeout(startHelper, 5000);
 })();
-
