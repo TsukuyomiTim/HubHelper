@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.5.1
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -11,8 +11,8 @@
 // @match        *://*.*.movepay.online/*
 // @match        *://*.*.*.movepay.online/*
 // @include      *movepay.online*
-// @updateURL    https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/DepositHelper.user.js
-// @downloadURL  https://raw.githubusercontent.com/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME/main/DepositHelper.user.js
+// @updateURL    https://raw.githubusercontent.com/TsukuyomiTim/HubHelper/main/DepositHelper.user.js
+// @downloadURL  https://raw.githubusercontent.com/TsukuyomiTim/HubHelper/main/DepositHelper.user.js
 // @grant        none
 // @run-at       document-idle
 // @noframes
@@ -822,3 +822,4 @@ Requisites: ${req}`;
     setTimeout(startHelper, 2000);
     setTimeout(startHelper, 5000);
 })();
+
