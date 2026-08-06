@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.6
+// @version      1.7
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -480,15 +480,32 @@ function collectJsonSnippets(scope) {
 function extractValueFromText(text, keys) {
     if (!text) return "";
     for (let key of keys) {
+        // "key": "value"
         let regex = new RegExp(`"${key}"\\s*:\\s*"([^"]*)"`, "i");
         let match = text.match(regex);
-        if (match && match[1]) return match[1];
+        if (match && match[1]) return match[1].trim();
 
+        // 'key': 'value'
+        regex = new RegExp(`'${key}'\\s*:\\s*'([^']*)'`, "i");
+        match = text.match(regex);
+        if (match && match[1]) return match[1].trim();
+
+        // "key": 79001234567
         regex = new RegExp(`"${key}"\\s*:\\s*([^,}\\]\\s]+)`, "i");
         match = text.match(regex);
-        if (match && match[1] && match[1] !== "null") {
-            return match[1].replace(/^["']|["']$/g, "");
+        if (match && match[1] && match[1] !== "null" && match[1] !== "undefined") {
+            return match[1].replace(/^["']|["']$/g, "").trim();
         }
+
+        // key: "value"
+        regex = new RegExp(`(?:^|[\\s,{])${key}\\s*[:=]\\s*"([^"]*)"`, "i");
+        match = text.match(regex);
+        if (match && match[1]) return match[1].trim();
+
+        // key: +79001234567
+        regex = new RegExp(`(?:^|[\\s,{])${key}\\s*[:=]\\s*([+]?[0-9][0-9\\s\\-()]{5,})`, "i");
+        match = text.match(regex);
+        if (match && match[1]) return match[1].replace(/\s+/g, "").trim();
     }
     return "";
 }
@@ -612,9 +629,10 @@ async function probeLogsForRequisites() {
     ]);
     let req = extractValueFromSnippets(uniqSnips, [
         "cardNumber", "card_number", "recipient_card_number", "pan",
-        "address", "requisites", "requisite", "number", "telefon", "phone", "phone_number",
-        "value", "holder_account", "payment_requisite",
-        "sbpNumber", "refer", "sbp_phone_number"
+        "telefon", "mobile_number", "mobileNumber", "mobile", "phone", "phone_number",
+        "sbpNumber", "sbp_phone_number",
+        "address", "requisites", "requisite", "number", "value",
+        "holder_account", "payment_requisite", "refer"
     ]);
     const identifier = extractValueFromSnippets(uniqSnips, [
         "identifier", "Identifier", "IDENTIFIER",
@@ -643,18 +661,19 @@ function extractRequisites() {
 
     let req = extractValue([
         "cardNumber", "card_number", "recipient_card_number", "pan",
-        "address", "requisites", "requisite", "number", "telefon", "phone", "phone_number",
-        "value", "holder_account", "payment_requisite",
-        "sbpNumber", "refer", "sbp_phone_number"
+        "telefon", "mobile_number", "mobileNumber", "mobile", "phone", "phone_number",
+        "sbpNumber", "sbp_phone_number",
+        "address", "requisites", "requisite", "number", "value",
+        "holder_account", "payment_requisite", "refer"
     ]);
 
     if (req && !isNumberLike(req)) {
         if (!holder) holder = req;
         req = extractValue([
             "cardNumber", "card_number", "recipient_card_number", "pan",
-            "number", "telefon", "phone", "phone_number", "value",
-            "holder_account", "payment_requisite",
-            "sbpNumber", "refer", "sbp_phone_number"
+            "telefon", "mobile_number", "mobileNumber", "mobile", "phone", "phone_number",
+            "sbpNumber", "sbp_phone_number",
+            "number", "value", "holder_account", "payment_requisite", "refer"
         ]);
     }
 
