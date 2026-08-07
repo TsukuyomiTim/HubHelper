@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.8
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -737,24 +737,38 @@ function attachEvents() {
     };
 
     document.getElementById("btn_all").onclick = function () {
-        // Заполняем поля (если пустые / обновить)
+        // Сохраняем то, что уже стоит в полях (например mobile_number после Extract / WITH REFERENCE)
+        const prev = {
+            method: document.getElementById("dh_method").value.trim(),
+            id: document.getElementById("dh_id").value.trim(),
+            ref: document.getElementById("dh_ref").value.trim(),
+            bank: document.getElementById("dh_bank").value.trim(),
+            holder: document.getElementById("dh_holder").value.trim(),
+            req: document.getElementById("dh_req").value.trim()
+        };
+
         const d = autoExtract();
 
-        // Если до этого жали WITH REFERENCE — identifier мог быть в requisites.
-        // Не затираем его, если autoExtract ничего полезного в req не нашёл,
-        // либо если в поле уже лежит identifier.
-        const identifier = extractValue([
-            "identifier", "Identifier", "IDENTIFIER",
-            "identificator", "id_identifier"
-        ]);
+        // Восстанавливаем непустые предыдущие значения — autoExtract не должен их затирать
         const reqInput = document.getElementById("dh_req");
-        if (identifier) {
-            // Предпочитаем identifier для копирования (как при WITH REFERENCE)
-            reqInput.value = identifier;
-            d.req = identifier;
+        if (prev.method) document.getElementById("dh_method").value = prev.method;
+        if (prev.id) document.getElementById("dh_id").value = prev.id;
+        if (prev.ref) document.getElementById("dh_ref").value = prev.ref;
+        if (prev.bank) document.getElementById("dh_bank").value = prev.bank;
+        if (prev.holder) document.getElementById("dh_holder").value = prev.holder;
+        if (prev.req) reqInput.value = prev.req;
+
+        // Если requisites пусто — пробуем identifier / mobile_number / telefon
+        if (!reqInput.value.trim()) {
+            const fallback = extractValue([
+                "identifier", "Identifier", "IDENTIFIER",
+                "identificator", "id_identifier",
+                "telefon", "mobile_number", "mobileNumber", "mobile",
+                "phone", "phone_number", "cardNumber", "card_number"
+            ]);
+            if (fallback) reqInput.value = fallback;
         }
 
-        // Берём актуальные значения прямо из полей панели
         const method = document.getElementById("dh_method").value.trim() || d.method;
         const id = document.getElementById("dh_id").value.trim() || d.id;
         const ref = document.getElementById("dh_ref").value.trim() || d.ref;
