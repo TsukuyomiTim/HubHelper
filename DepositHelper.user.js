@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.8
+// @version      1.9
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -639,6 +639,13 @@ async function probeLogsForRequisites() {
         "identificator", "id_identifier"
     ]);
 
+    // Явно предпочитаем mobile_number / telefon для req, если есть
+    const mobile = extractValueFromSnippets(uniqSnips, [
+        "mobile_number", "mobileNumber", "telefon", "mobile",
+        "phone", "phone_number", "sbp_phone_number", "sbpNumber"
+    ]);
+    if (mobile) req = mobile;
+
     return { bank, holder, req, identifier, snippets: uniqSnips, opened: unique.map(u => u.text) };
 }
 
@@ -820,12 +827,19 @@ Requisites: ${req}`;
                 if (hasData) {
                     if (data.bank) document.getElementById("dh_bank").value = data.bank;
                     if (data.holder) document.getElementById("dh_holder").value = data.holder;
-                    if (data.identifier) {
-                        document.getElementById("dh_req").value = data.identifier;
-                    } else if (data.req) {
+
+                    // Приоритет для Requisites: mobile_number / telefon / карта (data.req),
+                    // затем identifier
+                    if (data.req) {
                         document.getElementById("dh_req").value = data.req;
+                    } else if (data.identifier) {
+                        document.getElementById("dh_req").value = data.identifier;
                     }
-                    console.log("[Deposit Helper] requisites found on attempt", attempt, data.opened);
+                    console.log("[Deposit Helper] requisites found on attempt", attempt, {
+                        opened: data.opened,
+                        req: data.req,
+                        identifier: data.identifier
+                    });
                     break;
                 }
 
@@ -838,12 +852,14 @@ Requisites: ${req}`;
 
             // Финальный fallback по всей странице
             if (!document.getElementById("dh_req").value) {
-                const identifier = extractValue([
+                const fallback = extractValue([
+                    "telefon", "mobile_number", "mobileNumber", "mobile",
+                    "phone", "phone_number", "cardNumber", "card_number",
                     "identifier", "Identifier", "IDENTIFIER",
                     "identificator", "id_identifier"
                 ]);
-                if (identifier) {
-                    document.getElementById("dh_req").value = identifier;
+                if (fallback) {
+                    document.getElementById("dh_req").value = fallback;
                 }
             }
         } finally {
