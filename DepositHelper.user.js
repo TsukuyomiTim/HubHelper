@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      1.9
+// @version      2.0
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -654,6 +654,16 @@ function isNumberLike(str) {
     return /[0-9+]/.test(str);
 }
 
+
+function isVoidPayMethod(method) {
+    if (!method) return false;
+    return /VOIDPAY/i.test(String(method));
+}
+
+function preferIdentifierForMethod(method) {
+    return isVoidPayMethod(method);
+}
+
 function extractRequisites() {
     const bank = extractValue([
         "requisiteBank", "payment_system_readable", "bankName", "bank", "bank_name",
@@ -702,7 +712,16 @@ function autoExtract() {
     document.getElementById("dh_ref").value = ref;
     document.getElementById("dh_bank").value = data.bank;
     document.getElementById("dh_holder").value = data.holder;
-    document.getElementById("dh_req").value = data.req;
+
+    let reqVal = data.req;
+    if (preferIdentifierForMethod(clean)) {
+        const ident = extractValue([
+            "identifier", "Identifier", "IDENTIFIER",
+            "identificator", "id_identifier"
+        ]);
+        if (ident) reqVal = ident;
+    }
+    document.getElementById("dh_req").value = reqVal;
 
     return {
         method: clean,
@@ -711,7 +730,7 @@ function autoExtract() {
         merchant,
         bank: data.bank,
         holder: data.holder,
-        req: data.req
+        req: reqVal
     };
 }
 
@@ -828,15 +847,28 @@ Requisites: ${req}`;
                     if (data.bank) document.getElementById("dh_bank").value = data.bank;
                     if (data.holder) document.getElementById("dh_holder").value = data.holder;
 
-                    // Приоритет для Requisites: mobile_number / telefon / карта (data.req),
-                    // затем identifier
-                    if (data.req) {
-                        document.getElementById("dh_req").value = data.req;
-                    } else if (data.identifier) {
-                        document.getElementById("dh_req").value = data.identifier;
+                    const methodNow = (
+                        document.getElementById("dh_method").value || ""
+                    ).trim();
+
+                    // VOIDPAY* → сначала identifier; иначе phone/card, потом identifier
+                    if (preferIdentifierForMethod(methodNow)) {
+                        if (data.identifier) {
+                            document.getElementById("dh_req").value = data.identifier;
+                        } else if (data.req) {
+                            document.getElementById("dh_req").value = data.req;
+                        }
+                    } else {
+                        if (data.req) {
+                            document.getElementById("dh_req").value = data.req;
+                        } else if (data.identifier) {
+                            document.getElementById("dh_req").value = data.identifier;
+                        }
                     }
                     console.log("[Deposit Helper] requisites found on attempt", attempt, {
                         opened: data.opened,
+                        method: methodNow,
+                        voidpay: preferIdentifierForMethod(methodNow),
                         req: data.req,
                         identifier: data.identifier
                     });
@@ -852,12 +884,21 @@ Requisites: ${req}`;
 
             // Финальный fallback по всей странице
             if (!document.getElementById("dh_req").value) {
-                const fallback = extractValue([
-                    "telefon", "mobile_number", "mobileNumber", "mobile",
-                    "phone", "phone_number", "cardNumber", "card_number",
-                    "identifier", "Identifier", "IDENTIFIER",
-                    "identificator", "id_identifier"
-                ]);
+                const methodNow = (document.getElementById("dh_method").value || "").trim();
+                const keys = preferIdentifierForMethod(methodNow)
+                    ? [
+                        "identifier", "Identifier", "IDENTIFIER",
+                        "identificator", "id_identifier",
+                        "telefon", "mobile_number", "mobileNumber", "mobile",
+                        "phone", "phone_number", "cardNumber", "card_number"
+                    ]
+                    : [
+                        "telefon", "mobile_number", "mobileNumber", "mobile",
+                        "phone", "phone_number", "cardNumber", "card_number",
+                        "identifier", "Identifier", "IDENTIFIER",
+                        "identificator", "id_identifier"
+                    ];
+                const fallback = extractValue(keys);
                 if (fallback) {
                     document.getElementById("dh_req").value = fallback;
                 }
