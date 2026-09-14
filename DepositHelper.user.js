@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      2.0
+// @version      2.3
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -23,7 +23,7 @@
 
     console.log("[Deposit Helper] script starting on", location.href);
 
-    const CSS = '#depositHelperPanel {\n    position: fixed;\n    bottom: 20px;\n    right: 20px;\n    width: 320px;\n    min-width: 240px;\n    min-height: 260px;\n    max-width: 90vw;\n    max-height: 90vh;\n    background: #1e1e2f;\n    color: white;\n    border-radius: 10px;\n    padding: 12px;\n    padding-bottom: 22px;\n    font-family: Arial, sans-serif;\n    font-size: 14px;\n    z-index: 999999;\n    box-shadow: 0 0 15px rgba(0,0,0,0.5);\n    overflow: auto;\n    box-sizing: border-box;\n}\n\n#depositHelperPanel * {\n    box-sizing: border-box;\n}\n\n#depositHelperPanel input {\n    width: 100%;\n    margin-bottom: 6px;\n    padding: 0.4em 0.5em;\n    border-radius: 5px;\n    border: none;\n    font-size: 1em;\n    background: #2a2a3d;\n    color: white;\n}\n\n#depositHelperPanel input::placeholder {\n    color: #aaa;\n}\n\n#depositHelperPanel button {\n    width: 100%;\n    margin-top: 4px;\n    padding: 0.45em 0.6em;\n    border: none;\n    border-radius: 6px;\n    background: #4CAF50;\n    color: white;\n    cursor: pointer;\n    font-size: 1em;\n    font-weight: 500;\n}\n\n#depositHelperPanel button:hover {\n    background: #45a049;\n}\n\n#depositHelperPanel #dh_header {\n    cursor: move;\n    font-weight: bold;\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 8px;\n    user-select: none;\n    font-size: 1.1em;\n}\n\n#depositHelperPanel #dh_pin {\n    width: auto;\n    padding: 0.2em 0.6em;\n    margin-top: 0;\n    font-size: 0.95em;\n}\n\n/* Явный угол для ресайза */\n#dh_resize {\n    position: absolute;\n    right: 0;\n    bottom: 0;\n    width: 18px;\n    height: 18px;\n    cursor: nwse-resize;\n    z-index: 10;\n    background: linear-gradient(135deg, transparent 40%, #888 40%, #888 50%, transparent 50%, transparent 60%, #888 60%, #888 70%, transparent 70%);\n    border-radius: 0 0 10px 0;\n    opacity: 0.85;\n}\n\n#dh_resize:hover {\n    opacity: 1;\n    background: linear-gradient(135deg, transparent 40%, #4CAF50 40%, #4CAF50 50%, transparent 50%, transparent 60%, #4CAF50 60%, #4CAF50 70%, transparent 70%);\n}\n';
+    const CSS = '#depositHelperPanel {\n    position: fixed;\n    bottom: 20px;\n    right: 20px;\n    width: 320px;\n    min-width: 240px;\n    min-height: 260px;\n    max-width: 90vw;\n    max-height: 90vh;\n    background: #1e1e2f;\n    color: white;\n    border-radius: 10px;\n    padding: 12px;\n    padding-bottom: 22px;\n    font-family: Arial, sans-serif;\n    font-size: 14px;\n    z-index: 999999;\n    box-shadow: 0 0 15px rgba(0,0,0,0.5);\n    overflow: auto;\n    box-sizing: border-box;\n}\n\n#depositHelperPanel * {\n    box-sizing: border-box;\n}\n\n#depositHelperPanel input {\n    width: 100%;\n    margin-bottom: 6px;\n    padding: 0.4em 0.5em;\n    border-radius: 5px;\n    border: none;\n    font-size: 1em;\n    background: #2a2a3d;\n    color: white;\n}\n\n#depositHelperPanel input::placeholder {\n    color: #aaa;\n}\n\n#depositHelperPanel button {\n    width: 100%;\n    margin-top: 4px;\n    padding: 0.45em 0.6em;\n    border: none;\n    border-radius: 6px;\n    background: #4CAF50;\n    color: white;\n    cursor: pointer;\n    font-size: 1em;\n    font-weight: 500;\n}\n\n#depositHelperPanel button:hover {\n    background: #45a049;\n}\n\n#depositHelperPanel #dh_header {\n    cursor: move;\n    font-weight: bold;\n    display: flex;\n    justify-content: space-between;\n    align-items: center;\n    margin-bottom: 8px;\n    user-select: none;\n    font-size: 1.1em;\n}\n\n#depositHelperPanel #dh_pin {\n    width: auto;\n    padding: 0.2em 0.6em;\n    margin-top: 0;\n    font-size: 0.95em;\n}\n\n#depositHelperPanel #dh_req {\n    font-size: 1.2em;\n    font-weight: 700;\n    padding: 0.5em 0.5em;\n    letter-spacing: 0.02em;\n    background: #32324a;\n}\n#depositHelperPanel .dh_sep {\n    height: 1px;\n    background: #55556a;\n    margin: 10px 0 12px 0;\n}\n#depositHelperPanel #btn_with_ref.stop-mode {\n    background: #c62828;\n}\n#depositHelperPanel #btn_with_ref.stop-mode:hover {\n    background: #b71c1c;\n}\n/* Явный угол для ресайза */\n#dh_resize {\n    position: absolute;\n    right: 0;\n    bottom: 0;\n    width: 18px;\n    height: 18px;\n    cursor: nwse-resize;\n    z-index: 10;\n    background: linear-gradient(135deg, transparent 40%, #888 40%, #888 50%, transparent 50%, transparent 60%, #888 60%, #888 70%, transparent 70%);\n    border-radius: 0 0 10px 0;\n    opacity: 0.85;\n}\n\n#dh_resize:hover {\n    opacity: 1;\n    background: linear-gradient(135deg, transparent 40%, #4CAF50 40%, #4CAF50 50%, transparent 50%, transparent 60%, #4CAF50 60%, #4CAF50 70%, transparent 70%);\n}\n';
 
     function injectStyles() {
         if (document.getElementById("depositHelperStyles")) return;
@@ -55,17 +55,15 @@ function createPanel() {
         <button id="btn_id">Copy ID</button>
 
         <input id="dh_ref" placeholder="Transaction Reference">
-        <button id="btn_ref">Copy Reference</button>
+
+        <div class="dh_sep"></div>
 
         <input id="dh_bank" placeholder="Bank">
         <input id="dh_holder" placeholder="Holder">
         <input id="dh_req" placeholder="Requisites">
 
-        <button id="btn_req">Extract Requisites</button>
-
         <button id="btn_all">COPY ALL</button>
         <button id="btn_with_ref">WITH REFERENCE</button>
-        <button id="btn_with_id">WITH ID</button>
 
         <div id="dh_resize" title="Потяни, чтобы изменить размер"></div>
     `;
@@ -545,76 +543,8 @@ const LOG_TARGETS = [
     "CARD_PROCESSING_ORDER"
 ];
 
-async function openTransactionLogsTab() {
-    // Открываем вкладку Transaction Logs
-    const hit = clickFirstByText([
-        "Transaction Logs",
-        "TRANSACTION LOGS",
-        "Transaction logs",
-        "Logs"
-    ], { maxLen: 40 });
-    await sleep(250);
-    return !!hit;
-}
-
-async function probeLogsForRequisites() {
-    // 1) Вкладка Transaction Logs
-    await openTransactionLogsTab();
-    await sleep(200);
-
-    // 2) Находим все целевые логи и РАСКРЫВАЕМ их (не закрываем)
-    const hits = findElementsByText(LOG_TARGETS, { maxLen: 60 });
-    hits.sort((a, b) => a.text.length - b.text.length);
-
-    const seen = new Set();
-    const unique = [];
-    for (const h of hits) {
-        const key = h.text.toUpperCase().replace(/\s+/g, " ");
-        // Отфильтровываем слишком общие совпадения
-        let matched = false;
-        for (const p of LOG_TARGETS) {
-            if (key.includes(p)) { matched = true; break; }
-        }
-        if (!matched) continue;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        unique.push(h);
-    }
-
-    // Раскрываем ВСЕ логи подряд, не кликая повторно по уже открытым
-    for (const hit of unique) {
-        ensureExpanded(hit.el);
-        await sleep(100);
-        // Иногда нужно кликнуть родителя-строку
-        if (hit.el.parentElement) {
-            ensureExpanded(hit.el.parentElement);
-        }
-        await sleep(80);
-    }
-
-    await sleep(150);
-
-    // 3) В каждом раскрытом блоке жмём Raw JSON (ищем рядом с заголовком лога)
-    for (const hit of unique) {
-        // Ищем контейнер секции лога
-        let scope = hit.el.closest
-            ? (hit.el.closest("[class*='log'], [class*='Log'], [class*='panel'], [class*=' Pan'], section, details, li, div") || hit.el.parentElement)
-            : hit.el.parentElement;
-
-        // Поднимаемся на 1–2 уровня, если scope слишком мелкий
-        if (scope && scope.children && scope.children.length < 2 && scope.parentElement) {
-            scope = scope.parentElement;
-        }
-
-        clickRawJsonInScope(scope);
-        await sleep(120);
-    }
-
-    // Глобально ещё раз Raw JSON на случай одной общей вкладки
-    clickRawJsonInScope(document);
-    await sleep(200);
-
-    // 4) Собираем JSON со ВСЕХ открытых блоков
+async function extractFromVisibleRawJson() {
+    // RAW JSON уже открыт — не кликаем вкладки/логи, только читаем видимый JSON
     const allSnippets = collectJsonSnippets(document);
     const uniqSnips = [...new Set(allSnippets)];
 
@@ -639,14 +569,25 @@ async function probeLogsForRequisites() {
         "identificator", "id_identifier"
     ]);
 
-    // Явно предпочитаем mobile_number / telefon для req, если есть
     const mobile = extractValueFromSnippets(uniqSnips, [
         "mobile_number", "mobileNumber", "telefon", "mobile",
         "phone", "phone_number", "sbp_phone_number", "sbpNumber"
     ]);
     if (mobile) req = mobile;
 
-    return { bank, holder, req, identifier, snippets: uniqSnips, opened: unique.map(u => u.text) };
+    const accountNumber = extractValueFromSnippets(uniqSnips, ["accountNumber", "account_number"]);
+    const ownerName = extractValueFromSnippets(uniqSnips, ["ownerName", "owner_name"]);
+
+    return {
+        bank,
+        holder,
+        req,
+        identifier,
+        accountNumber,
+        ownerName,
+        snippets: uniqSnips,
+        opened: uniqSnips.length ? ["RAW_JSON_VISIBLE"] : []
+    };
 }
 
 function isNumberLike(str) {
@@ -662,6 +603,12 @@ function isVoidPayMethod(method) {
 
 function preferIdentifierForMethod(method) {
     return isVoidPayMethod(method);
+}
+
+function isMobyDickPsbPayInRedirect(method) {
+    if (!method) return false;
+    const m = String(method).toUpperCase().replace(/\s+/g, "_");
+    return m.includes("MOBY_DICK_PSB_PAY_IN_REDIRECT") || m.includes("MOBYDICK_PSB_PAY_IN_REDIRECT");
 }
 
 function extractRequisites() {
@@ -714,13 +661,21 @@ function autoExtract() {
     document.getElementById("dh_holder").value = data.holder;
 
     let reqVal = data.req;
-    if (preferIdentifierForMethod(clean)) {
+    let holderVal = data.holder;
+
+    if (isMobyDickPsbPayInRedirect(clean)) {
+        const acc = extractValue(["accountNumber", "account_number"]);
+        const owner = extractValue(["ownerName", "owner_name"]);
+        if (acc) reqVal = acc;
+        if (owner) holderVal = owner;
+    } else if (preferIdentifierForMethod(clean)) {
         const ident = extractValue([
             "identifier", "Identifier", "IDENTIFIER",
             "identificator", "id_identifier"
         ]);
         if (ident) reqVal = ident;
     }
+    document.getElementById("dh_holder").value = holderVal;
     document.getElementById("dh_req").value = reqVal;
 
     return {
@@ -747,19 +702,6 @@ function attachEvents() {
         const id = findValue("ID");
         document.getElementById("dh_id").value = id;
         copy(id);
-    };
-
-    document.getElementById("btn_ref").onclick = function () {
-        const ref = findValue("Transaction Reference");
-        document.getElementById("dh_ref").value = ref;
-        copy(ref);
-    };
-
-    document.getElementById("btn_req").onclick = function () {
-        const data = extractRequisites();
-        document.getElementById("dh_bank").value = data.bank;
-        document.getElementById("dh_holder").value = data.holder;
-        document.getElementById("dh_req").value = data.req;
     };
 
     document.getElementById("btn_all").onclick = function () {
@@ -815,32 +757,51 @@ Requisites: ${req}`;
         copy(text);
     };
 
+    let withRefRunning = false;
+    let withRefStop = false;
+
     document.getElementById("btn_with_ref").onclick = async function () {
         const btn = document.getElementById("btn_with_ref");
-        const prevLabel = btn.textContent;
-        btn.disabled = true;
 
-        // Сначала обычное заполнение (method/id/ref)
+        // Повторный клик во время поиска — принудительная остановка
+        if (withRefRunning) {
+            withRefStop = true;
+            btn.textContent = "STOPPING...";
+            console.log("[Deposit Helper] WITH REFERENCE stop requested");
+            return;
+        }
+
+        const prevLabel = "WITH REFERENCE";
+        withRefRunning = true;
+        withRefStop = false;
+        btn.classList.add("stop-mode");
+        btn.textContent = "STOP";
+
         autoExtract();
 
-        // Повторы, если логи ещё не прогрузились
         const maxAttempts = 5;
         const delayMs = 800;
         let data = null;
 
         try {
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                btn.textContent = "WAIT " + attempt + "/" + maxAttempts + "...";
+                if (withRefStop) {
+                    console.log("[Deposit Helper] WITH REFERENCE stopped by user");
+                    break;
+                }
+
+                btn.textContent = "STOP " + attempt + "/" + maxAttempts;
                 console.log("[Deposit Helper] WITH REFERENCE attempt", attempt);
 
                 try {
-                    data = await probeLogsForRequisites();
+                    data = await extractFromVisibleRawJson();
                 } catch (e) {
-                    console.warn("Deposit Helper probeLogs error", e);
+                    console.warn("Deposit Helper extractFromVisibleRawJson error", e);
                     data = null;
                 }
 
-                const hasLogs = data && data.opened && data.opened.length > 0;
+                if (withRefStop) break;
+
                 const hasData = data && (data.identifier || data.req || data.bank || data.holder);
 
                 if (hasData) {
@@ -851,8 +812,15 @@ Requisites: ${req}`;
                         document.getElementById("dh_method").value || ""
                     ).trim();
 
-                    // VOIDPAY* → сначала identifier; иначе phone/card, потом identifier
-                    if (preferIdentifierForMethod(methodNow)) {
+                    if (isMobyDickPsbPayInRedirect(methodNow)) {
+                        const acc = extractValue(["accountNumber", "account_number"]) ||
+                            extractValueFromSnippets(data.snippets || [], ["accountNumber", "account_number"]);
+                        const owner = extractValue(["ownerName", "owner_name"]) ||
+                            extractValueFromSnippets(data.snippets || [], ["ownerName", "owner_name"]);
+                        if (owner) document.getElementById("dh_holder").value = owner;
+                        if (acc) document.getElementById("dh_req").value = acc;
+                        else if (data.req) document.getElementById("dh_req").value = data.req;
+                    } else if (preferIdentifierForMethod(methodNow)) {
                         if (data.identifier) {
                             document.getElementById("dh_req").value = data.identifier;
                         } else if (data.req) {
@@ -866,7 +834,6 @@ Requisites: ${req}`;
                         }
                     }
                     console.log("[Deposit Helper] requisites found on attempt", attempt, {
-                        opened: data.opened,
                         method: methodNow,
                         voidpay: preferIdentifierForMethod(methodNow),
                         req: data.req,
@@ -875,16 +842,22 @@ Requisites: ${req}`;
                     break;
                 }
 
-                // Если логи не найдены или данных нет — ждём и пробуем снова
-                if (attempt < maxAttempts) {
-                    console.log("[Deposit Helper] logs not ready, retrying...", { hasLogs, hasData });
+                if (attempt < maxAttempts && !withRefStop) {
+                    console.log("[Deposit Helper] raw json not ready, retrying...");
                     await sleep(delayMs);
                 }
             }
 
-            // Финальный fallback по всей странице
-            if (!document.getElementById("dh_req").value) {
+            if (!withRefStop && !document.getElementById("dh_req").value) {
                 const methodNow = (document.getElementById("dh_method").value || "").trim();
+                if (isMobyDickPsbPayInRedirect(methodNow)) {
+                    const acc = extractValue(["accountNumber", "account_number"]);
+                    const owner = extractValue(["ownerName", "owner_name"]);
+                    if (owner && !document.getElementById("dh_holder").value) {
+                        document.getElementById("dh_holder").value = owner;
+                    }
+                    if (acc) document.getElementById("dh_req").value = acc;
+                }
                 const keys = preferIdentifierForMethod(methodNow)
                     ? [
                         "identifier", "Identifier", "IDENTIFIER",
@@ -904,13 +877,11 @@ Requisites: ${req}`;
                 }
             }
         } finally {
+            withRefRunning = false;
+            withRefStop = false;
+            btn.classList.remove("stop-mode");
             btn.textContent = prevLabel;
-            btn.disabled = false;
         }
-    };
-
-    document.getElementById("btn_with_id").onclick = function () {
-        autoExtract();
     };
 }
 
