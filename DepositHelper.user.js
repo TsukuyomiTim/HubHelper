@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deposit Helper Copy Tool
 // @namespace    http://tampermonkey.net/
-// @version      2.3
+// @version      2.4
 // @description  Quick copy deposit data from MovePay admin panel
 // @author       Deposit Helper
 // @match        *://pub.prod.movepay.online/*
@@ -577,6 +577,9 @@ async function extractFromVisibleRawJson() {
 
     const accountNumber = extractValueFromSnippets(uniqSnips, ["accountNumber", "account_number"]);
     const ownerName = extractValueFromSnippets(uniqSnips, ["ownerName", "owner_name"]);
+    const phoneNumber = extractValueFromSnippets(uniqSnips, [
+        "phone_number", "phoneNumber", "sbp_phone_number", "sbpNumber", "telefon"
+    ]);
 
     return {
         bank,
@@ -585,6 +588,7 @@ async function extractFromVisibleRawJson() {
         identifier,
         accountNumber,
         ownerName,
+        phoneNumber,
         snippets: uniqSnips,
         opened: uniqSnips.length ? ["RAW_JSON_VISIBLE"] : []
     };
@@ -609,6 +613,23 @@ function isMobyDickPsbPayInRedirect(method) {
     if (!method) return false;
     const m = String(method).toUpperCase().replace(/\s+/g, "_");
     return m.includes("MOBY_DICK_PSB_PAY_IN_REDIRECT") || m.includes("MOBYDICK_PSB_PAY_IN_REDIRECT");
+}
+
+function isGelatoSbpTrusted(method) {
+    if (!method) return false;
+    const m = String(method).toUpperCase().replace(/\s+/g, "_");
+    // GELATO_SBP_RUB_H2H_PAY-IN_TRUSTED (и после cleanMethod без GELATO_)
+    return /GELATO_SBP_RUB_H2H_PAY[-_]?IN_TRUSTED/.test(m) ||
+           /SBP_RUB_H2H_PAY[-_]?IN_TRUSTED/.test(m);
+}
+
+function extractGelatoPhone(snippets) {
+    const keys = ["phone_number", "phoneNumber", "sbp_phone_number", "sbpNumber", "telefon"];
+    if (snippets && snippets.length) {
+        const v = extractValueFromSnippets(snippets, keys);
+        if (v) return v;
+    }
+    return extractValue(keys);
 }
 
 function extractRequisites() {
@@ -668,6 +689,9 @@ function autoExtract() {
         const owner = extractValue(["ownerName", "owner_name"]);
         if (acc) reqVal = acc;
         if (owner) holderVal = owner;
+    } else if (isGelatoSbpTrusted(clean) || isGelatoSbpTrusted(methodRaw)) {
+        const phone = extractGelatoPhone();
+        if (phone) reqVal = phone;
     } else if (preferIdentifierForMethod(clean)) {
         const ident = extractValue([
             "identifier", "Identifier", "IDENTIFIER",
@@ -820,6 +844,10 @@ Requisites: ${req}`;
                         if (owner) document.getElementById("dh_holder").value = owner;
                         if (acc) document.getElementById("dh_req").value = acc;
                         else if (data.req) document.getElementById("dh_req").value = data.req;
+                    } else if (isGelatoSbpTrusted(methodNow)) {
+                        const phone = (data && data.phoneNumber) || extractGelatoPhone(data && data.snippets);
+                        if (phone) document.getElementById("dh_req").value = phone;
+                        else if (data.req) document.getElementById("dh_req").value = data.req;
                     } else if (preferIdentifierForMethod(methodNow)) {
                         if (data.identifier) {
                             document.getElementById("dh_req").value = data.identifier;
@@ -857,6 +885,9 @@ Requisites: ${req}`;
                         document.getElementById("dh_holder").value = owner;
                     }
                     if (acc) document.getElementById("dh_req").value = acc;
+                } else if (isGelatoSbpTrusted(methodNow)) {
+                    const phone = extractGelatoPhone();
+                    if (phone) document.getElementById("dh_req").value = phone;
                 }
                 const keys = preferIdentifierForMethod(methodNow)
                     ? [
